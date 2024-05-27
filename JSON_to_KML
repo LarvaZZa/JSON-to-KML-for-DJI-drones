@@ -1,0 +1,161 @@
+import json
+from xml.etree.ElementTree import Element, SubElement, tostring, ElementTree
+
+
+def create_kml(waypoints, output_file):
+    # Create the KML structure
+    kml = Element('kml', xmlns="http://www.opengis.net/kml/2.2")
+    document = SubElement(kml, 'Document')
+
+    name = SubElement(document, 'name')
+    name.text = 'Waypoint12'
+
+    open_tag = SubElement(document, 'open')
+    open_tag.text = '1'
+
+    extended_data_doc = SubElement(document, 'ExtendedData')
+    extended_data_doc.set("xmlns:mis", "www.dji.com")
+    mis_type = SubElement(extended_data_doc, 'mis:type')
+    mis_type.text = 'Waypoint'
+    mis_station_type = SubElement(extended_data_doc, 'mis:stationType')
+    mis_station_type.text = '0'
+
+    style_line = SubElement(document, 'Style', id="waylineGreenPoly")
+    line_style = SubElement(style_line, 'LineStyle')
+    color = SubElement(line_style, 'color')
+    color.text = 'FF0AEE8B'
+    width = SubElement(line_style, 'width')
+    width.text = '6'
+
+    style_waypoint = SubElement(document, 'Style', id="waypointStyle")
+    icon_style = SubElement(style_waypoint, 'IconStyle')
+    icon = SubElement(icon_style, 'Icon')
+    href = SubElement(icon, 'href')
+    href.text = 'https://cdnen.dji-flighthub.com/static/app/images/point.png'
+
+    folder = SubElement(document, 'Folder')
+    folder_name = SubElement(folder, 'name')
+    folder_name.text = 'Waypoints'
+    folder_desc = SubElement(folder, 'description')
+    folder_desc.text = 'Waypoints in the Mission.'
+
+    coordinates_list = []
+    for waypoint_id, waypoint_data in sorted(waypoints.items(), key=lambda x: int(x[0].split('_')[1])):
+        coordinates = waypoint_data['coordinates']
+        latitude = coordinates['latitude']
+        longitude = coordinates['longitude']
+        height = waypoint_data['height']
+        coordinates_list.append(f"{longitude},{latitude},{height}")
+
+        placemark = SubElement(folder, 'Placemark')
+        name = SubElement(placemark, 'name')
+        name.text = waypoint_id
+
+        visibility = SubElement(placemark, 'visibility')
+        visibility.text = '1'
+
+        description = SubElement(placemark, 'description')
+        description.text = 'Waypoint'
+
+        style_url = SubElement(placemark, 'styleUrl')
+        style_url.text = '#waypointStyle'
+
+        extended_data = SubElement(placemark, 'ExtendedData')
+        extended_data.set("xmlns:mis", "www.dji.com")
+        use_wayline_altitude = SubElement(extended_data, 'mis:useWaylineAltitude')
+        use_wayline_altitude.text = 'true'
+        heading = SubElement(extended_data, 'mis:heading')
+        heading.text = '0'
+        turn_mode = SubElement(extended_data, 'mis:turnMode')
+        turn_mode.text = 'Auto'
+        gimbal_pitch = SubElement(extended_data, 'mis:gimbalPitch')
+        gimbal_pitch.text = '0.0'
+        use_wayline_speed = SubElement(extended_data, 'mis:useWaylineSpeed')
+        use_wayline_speed.text = 'true'
+        speed = SubElement(extended_data, 'mis:speed')
+        speed.text = '1.0'
+        use_wayline_heading_mode = SubElement(extended_data, 'mis:useWaylineHeadingMode')
+        use_wayline_heading_mode.text = 'true'
+        use_wayline_point_type = SubElement(extended_data, 'mis:useWaylinePointType')
+        use_wayline_point_type.text = 'true'
+        point_type = SubElement(extended_data, 'mis:pointType')
+        point_type.text = 'LineStop'
+        corner_radius = SubElement(extended_data, 'mis:cornerRadius')
+        corner_radius.text = '0.2'
+
+        point = SubElement(placemark, 'Point')
+        altitude_mode = SubElement(point, 'altitudeMode')
+        altitude_mode.text = 'relativeToGround'
+        coordinates = SubElement(point, 'coordinates')
+        coordinates.text = f"{longitude},{latitude},0.5"
+
+    wayline_placemark = SubElement(document, 'Placemark')
+    wayline_name = SubElement(wayline_placemark, 'name')
+    wayline_name.text = 'Wayline'
+    wayline_desc = SubElement(wayline_placemark, 'description')
+    wayline_desc.text = 'Wayline'
+    wayline_visibility = SubElement(wayline_placemark, 'visibility')
+    wayline_visibility.text = '1'
+
+    extended_data_wayline = SubElement(wayline_placemark, 'ExtendedData')
+    extended_data_wayline.set("xmlns:mis", "www.dji.com")
+    mis_altitude = SubElement(extended_data_wayline, 'mis:altitude')
+    mis_altitude.text = '20.0'
+    mis_auto_flight_speed = SubElement(extended_data_wayline, 'mis:autoFlightSpeed')
+    mis_auto_flight_speed.text = '2.0'
+    mis_action_on_finish = SubElement(extended_data_wayline, 'mis:actionOnFinish')
+    mis_action_on_finish.text = 'GoHome'
+    mis_heading_mode = SubElement(extended_data_wayline, 'mis:headingMode')
+    mis_heading_mode.text = 'Auto'
+    mis_gimbal_pitch_mode = SubElement(extended_data_wayline, 'mis:gimbalPitchMode')
+    mis_gimbal_pitch_mode.text = 'UsePointSetting'
+    mis_power_save_mode = SubElement(extended_data_wayline, 'mis:powerSaveMode')
+    mis_power_save_mode.text = 'false'
+    mis_waypoint_type = SubElement(extended_data_wayline, 'mis:waypointType')
+    mis_waypoint_type.text = 'LineStop'
+    mis_drone_info = SubElement(extended_data_wayline, 'mis:droneInfo')
+    mis_drone_type = SubElement(mis_drone_info, 'mis:droneType')
+    mis_drone_type.text = 'COMMON'
+    mis_advance_settings = SubElement(mis_drone_info, 'mis:advanceSettings')
+    mis_advance_settings.text = 'false'
+    mis_drone_cameras = SubElement(mis_drone_info, 'mis:droneCameras')
+    mis_drone_height = SubElement(mis_drone_info, 'mis:droneHeight')
+    mis_use_absolute = SubElement(mis_drone_height, 'mis:useAbsolute')
+    mis_use_absolute.text = 'false'
+    mis_has_takeoff_height = SubElement(mis_drone_height, 'mis:hasTakeoffHeight')
+    mis_has_takeoff_height.text = 'false'
+    mis_takeoff_height = SubElement(mis_drone_height, 'mis:takeoffHeight')
+    mis_takeoff_height.text = '0.0'
+
+    wayline_style_url = SubElement(wayline_placemark, 'styleUrl')
+    wayline_style_url.text = '#waylineGreenPoly'
+
+    line_string = SubElement(wayline_placemark, 'LineString')
+    tessellate = SubElement(line_string, 'tessellate')
+    tessellate.text = '1'
+    altitude_mode = SubElement(line_string, 'altitudeMode')
+    altitude_mode.text = 'relativeToGround'
+    coordinates = SubElement(line_string, 'coordinates')
+    coordinates.text = ' '.join(coordinates_list)
+
+    # Convert the ElementTree to a string
+    kml_str = tostring(kml, 'utf-8')
+
+    # Write to the output file
+    with open(output_file, 'wb') as f:
+        f.write(kml_str)
+
+
+# Function to read the JSON file and convert to KML
+def json_to_kml(json_file, kml_file):
+    with open(json_file, 'r') as f:
+        data = json.load(f)
+
+    waypoints = data.get('mission', {})
+    create_kml(waypoints, kml_file)
+
+
+# Example usage
+json_file = 'matrica_custom.json'
+kml_file = 'matrica_custom_2_5.kml'
+json_to_kml(json_file, kml_file)
